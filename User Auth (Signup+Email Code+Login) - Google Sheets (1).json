@@ -1,0 +1,899 @@
+{
+  "name": "User Auth (Signup+Email Code+Login) - Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth-request-code",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2333eb3c-660b-4d3e-b8de-81be273f9037",
+      "name": "Webhook - auth-request-code",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        128
+      ],
+      "webhookId": "auth-request-code"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8",
+          "mode": "list",
+          "cachedResultName": "vamosChat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "e84ffdde-4ab3-4b9a-8551-c135fedc78c6",
+      "name": "Read Users (Signup)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        -640,
+        128
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "J92OrsQLi3iFvPor",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Webhook - auth-request-code').first().json.body;\nconst email = String(body.email || '').trim().toLowerCase();\nconst name = String(body.name || '').trim();\nconst password = String(body.password || '');\n\nif (!name) throw new Error('Missing name');\nif (!email) throw new Error('Missing email');\nif (!password || password.length < 6) throw new Error('Password must be at least 6 characters');\n\nconst rows = $input.all().map(i => i.json);\n\n// Google Sheets may return column names exactly as headers.\n// Support both \"Email\" and \"email\" (just in case)\nconst exists = rows.some(r => String(r.Email || r.email || '').trim().toLowerCase() === email);\n\nreturn [{ json: { exists, email, name, password } }];"
+      },
+      "id": "4bd5543b-792d-42b9-b4ec-8d4bb320dfb2",
+      "name": "Check User Exists",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.exists }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "fcb73fec-9ad6-4590-88db-6c606bf0994c",
+      "name": "IF User Exists? (Signup)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, message: 'Email already registered. Please login.' } }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "86af8a5c-363a-43f2-8480-b080bfedcc70",
+      "name": "Respond - Signup Exists",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $input.first().json.email;\nconst name = $input.first().json.name;\nconst password = $input.first().json.password;\n\nconst code = String(Math.floor(100000 + Math.random() * 900000));\nconst now = new Date();\nconst expiresAt = new Date(now.getTime() + 10 * 60 * 1000).toISOString();\n\nreturn [{\n  json: {\n    email,\n    name,\n    password,\n    code,\n    expiresAt,\n    createdAt: now.toISOString()\n  }\n}];\n"
+      },
+      "id": "d3bd4aa9-0af8-4dfa-8a37-26af1f6a1f3e",
+      "name": "Generate OTP + Hash",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8",
+          "mode": "list",
+          "cachedResultName": "vamosChat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1935128133,
+          "mode": "list",
+          "cachedResultName": "OTP",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit#gid=1935128133"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Email",
+              "fieldValue": "={{ $json.email }}"
+            },
+            {
+              "fieldId": "Name",
+              "fieldValue": "={{ $json.name }}"
+            },
+            {
+              "fieldId": "password",
+              "fieldValue": "={{ $json.password }}"
+            },
+            {
+              "fieldId": "Code",
+              "fieldValue": "={{ $json.code }}"
+            },
+            {
+              "fieldId": "ExpiresAt",
+              "fieldValue": "={{ $json.expiresAt }}"
+            },
+            {
+              "fieldId": "CreatedAt",
+              "fieldValue": "={{ $json.createdAt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aef860e9-00b6-4895-9fc7-3f0eb2abb670",
+      "name": "Save OTP (Google Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        224,
+        240
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "J92OrsQLi3iFvPor",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Your Vamos verification code",
+        "message": "=Your verification code is: {{ $json.code }}    This code expires in 10 minutes.",
+        "options": {}
+      },
+      "id": "20378941-e094-4da3-9c74-c0d0b13db482",
+      "name": "Send Code Email (Gmail)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        240
+      ],
+      "webhookId": "f806a50e-1dbc-46e8-9ddd-37c973d323ec",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GyVvafPLDlNU7m95",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Code sent. Check your email.' } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "14177421-880c-46a1-9a70-06c2714e585a",
+      "name": "Respond - Code Sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        704,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth-verify",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ac823cf8-07e9-4f1d-8251-930ab8eaec1d",
+      "name": "Webhook - auth-verify",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        400
+      ],
+      "webhookId": "auth-verify"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8",
+          "mode": "list",
+          "cachedResultName": "vamosChat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "2f387fbb-29ba-45d5-98bf-caaa630c5ee6",
+      "name": "Read Users (Verify)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        -640,
+        400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "J92OrsQLi3iFvPor",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Webhook - auth-verify').first().json.body;\nconst email = String(body.email || '').trim().toLowerCase();\nconst code = String(body.code || '').trim();\n\nif (!email) throw new Error('Missing email');\nif (!code || code.length !== 6) throw new Error('Invalid code');\n\nconst rows = $input.all().map(i => i.json);\nconst row = rows.find(r => String(r.Email || r.email || '').trim().toLowerCase() === email);\n\nreturn [{ json: { email, code, userExists: !!row, existingName: row ? (row.Name || row.name || '') : '' } }];"
+      },
+      "id": "edd07792-35c5-410a-8292-ed8d7a1e7875",
+      "name": "Check User Exists (Verify)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.userExists }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "2f8e47de-271b-4e56-8d6d-94b71b95d6ef",
+      "name": "IF Already User? (Verify)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Account already exists. You can login.', user: { name: $json.existingName, email: $json.email } } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "9d73d268-d9c9-4473-830a-a2ad6af116cf",
+      "name": "Respond - Already User",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8",
+          "mode": "list",
+          "cachedResultName": "vamosChat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1935128133,
+          "mode": "list",
+          "cachedResultName": "OTP",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit#gid=1935128133"
+        },
+        "options": {}
+      },
+      "id": "f43e3618-059f-4275-b5ec-9a0790067f47",
+      "name": "Read OTP",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        0,
+        544
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "J92OrsQLi3iFvPor",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\n\n// Get incoming values (from your earlier node)\nconst rawEmail = $items('Check User Exists (Verify)')[0]?.json?.email ?? '';\nconst rawCode  = $items('Check User Exists (Verify)')[0]?.json?.code ?? '';\n\nconst email = String(rawEmail).trim().toLowerCase();\nconst code  = String(rawCode).trim();\n\nconst otpRows = $input.all().map(i => i.json);\n\n// Find latest matching OTP row\nconst matches = otpRows\n  .filter(r => {\n    const rowEmail = String(r.Email ?? r.email ?? '').trim().toLowerCase();\n    const rowCode  = String(r.Code  ?? r.code  ?? '').trim();\n    return rowEmail === email && rowCode === code;\n  })\n  .sort((a, b) => new Date(b.CreatedAt ?? b.createdAt ?? 0) - new Date(a.CreatedAt ?? a.createdAt ?? 0));\n\nif (!matches.length) {\n  return [{ json: { success: false, message: 'Invalid code' } }];\n}\n\nconst otp = matches[0];\n\nconst expiresAtStr = String(otp.ExpiresAt ?? otp.expiresAt ?? '').trim();\nconst expiresAt = new Date(expiresAtStr);\n\nif (!expiresAtStr || isNaN(expiresAt.getTime())) {\n  return [{ json: { success: false, message: 'OTP row missing ExpiresAt' } }];\n}\n\nif (expiresAt.getTime() < now.getTime()) {\n  return [{ json: { success: false, message: 'Code expired. Please request a new code.' } }];\n}\n\n// If you're using plain password (simple mode)\nreturn [{\n  json: {\n    success: true,\n    email,\n    name: otp.Name ?? otp.name ?? '',\n    password: otp.Password ?? otp.password ?? '',\n    createdAt: new Date().toISOString()\n  }\n}];\n"
+      },
+      "id": "4db9f330-cfe8-48f0-92b5-f045c852a865",
+      "name": "Validate OTP",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "2491da85-3ac2-4880-a0b5-e84f4d387940",
+      "name": "IF OTP Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        464,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, message: $json.message || 'Invalid code' } }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "482a6842-f294-4540-b7d3-36ae82368cd6",
+      "name": "Respond - Verify Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        688,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8",
+          "mode": "list",
+          "cachedResultName": "vamosChat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit#gid=0"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Name",
+              "fieldValue": "={{ $json.name }}"
+            },
+            {
+              "fieldId": "Email",
+              "fieldValue": "={{ $json.email }}"
+            },
+            {
+              "fieldId": "password",
+              "fieldValue": "={{ $json.password }}"
+            },
+            {
+              "fieldId": "CreatedAt",
+              "fieldValue": "={{ $json.createdAt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6ae0dc6c-6991-4bd8-9389-ad6c2a56bf14",
+      "name": "Create User (Google Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        704,
+        448
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "J92OrsQLi3iFvPor",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Account created', user: { name: $json.name, email: $json.email } } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ce6998d2-0d3a-4eb7-9568-f0ff2e8e72b1",
+      "name": "Respond - Verify Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        896,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth-login",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "439c9bac-5d96-46a7-b60f-2801f629cbeb",
+      "name": "Webhook - auth-login",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        720
+      ],
+      "webhookId": "auth-login"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8",
+          "mode": "list",
+          "cachedResultName": "vamosChat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XA380iDJuRTUUZnzeXEOqCEdw_o061QrYoIF22_9VF8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "d517b74c-f741-4e3d-8267-4076ab117ac2",
+      "name": "Read Users (Login)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        -640,
+        720
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "J92OrsQLi3iFvPor",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Read credentials from the webhook\nconst body = $items('Webhook - auth-login')[0]?.json?.body ?? {};\nconst email = String(body.email || '').trim().toLowerCase();\nconst password = String(body.password || '').trim();\n\nif (!email) return [{ json: { success: false, message: 'Missing email' } }];\nif (!password) return [{ json: { success: false, message: 'Missing password' } }];\n\n// Rows from Google Sheets \"Read Users (Login)\"\nconst rows = $input.all().map(i => i.json);\n\n// Find user by email (supports Email/email)\nconst userRow = rows.find(r =>\n  String(r.Email ?? r.email ?? '').trim().toLowerCase() === email\n);\n\nif (!userRow) {\n  return [{\n    json: {\n      success: false,\n      message: `User not found. (Sheets rows received: ${rows.length})`\n    }\n  }];\n}\n\n// Compare password (supports Password/password)\nconst storedPassword = String(userRow.Password ?? userRow.password ?? '').trim();\n\nif (!storedPassword) {\n  return [{ json: { success: false, message: 'User exists but password is empty in Google Sheets.' } }];\n}\n\nif (storedPassword !== password) {\n  return [{ json: { success: false, message: 'Wrong password.' } }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    user: { name: userRow.Name ?? userRow.name ?? 'User', email }\n  }\n}];\n"
+      },
+      "id": "467481b0-bc46-457e-ba64-8049dc2b85fb",
+      "name": "Check Login",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "8f8e6f26-3900-4cca-b67e-3f827e4a684a",
+      "name": "IF Login OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, message: $json.message || 'Login failed' } }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "90f48d55-ee8d-4bd9-b7f2-1fa449bf2d2b",
+      "name": "Respond - Login Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        96,
+        912
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Login success', user: $json.user } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "2784b7b8-8e7c-4712-a822-446d616768f9",
+      "name": "Respond - Login Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        80,
+        720
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - auth-request-code": {
+      "main": [
+        [
+          {
+            "node": "Read Users (Signup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Users (Signup)": {
+      "main": [
+        [
+          {
+            "node": "Check User Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check User Exists": {
+      "main": [
+        [
+          {
+            "node": "IF User Exists? (Signup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF User Exists? (Signup)": {
+      "main": [
+        [
+          {
+            "node": "Respond - Signup Exists",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate OTP + Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate OTP + Hash": {
+      "main": [
+        [
+          {
+            "node": "Save OTP (Google Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save OTP (Google Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Send Code Email (Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Code Email (Gmail)": {
+      "main": [
+        [
+          {
+            "node": "Respond - Code Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - auth-verify": {
+      "main": [
+        [
+          {
+            "node": "Read Users (Verify)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Users (Verify)": {
+      "main": [
+        [
+          {
+            "node": "Check User Exists (Verify)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check User Exists (Verify)": {
+      "main": [
+        [
+          {
+            "node": "IF Already User? (Verify)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Already User? (Verify)": {
+      "main": [
+        [
+          {
+            "node": "Respond - Already User",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read OTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read OTP": {
+      "main": [
+        [
+          {
+            "node": "Validate OTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate OTP": {
+      "main": [
+        [
+          {
+            "node": "IF OTP Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF OTP Valid?": {
+      "main": [
+        [
+          {
+            "node": "Create User (Google Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Verify Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create User (Google Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Respond - Verify Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - auth-login": {
+      "main": [
+        [
+          {
+            "node": "Read Users (Login)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Users (Login)": {
+      "main": [
+        [
+          {
+            "node": "Check Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Login": {
+      "main": [
+        [
+          {
+            "node": "IF Login OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Login OK?": {
+      "main": [
+        [
+          {
+            "node": "Respond - Login Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Login Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "bcb2226f-5c06-4904-936b-1955bb2ebde4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7065833bb9d13308e9a24fe7449032e0bcd7705dc67d09b38baf671df15ad75e"
+  },
+  "id": "CyfGkzVLZDE_yrx_v27BO",
+  "tags": []
+}

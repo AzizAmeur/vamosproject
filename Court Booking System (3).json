@@ -1,0 +1,396 @@
+{
+  "name": "Court Booking System",
+  "nodes": [
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Booking confirmed\", \"data\": $json.body } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "574a228d-e092-42b2-b21d-24814fbbf812",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "azizameur200612@gmail.com",
+          "mode": "list",
+          "cachedResultName": "azizameur200612@gmail.com"
+        },
+        "start": "={{ $json.body.date }}T{{ $json.body.time.split(' - ')[0] }}:00",
+        "end": "={{ $json.body.date }}T{{ $json.body.time.split(' - ')[1] }}:00",
+        "additionalFields": {
+          "attendees": [],
+          "summary": "={{ $json.body.name }} {{ $json.body.court }} {{ $json.body.date }} {{ $json.body.time }}"
+        }
+      },
+      "id": "3c6fbead-478d-40c0-994d-6baf5df475f5",
+      "name": "Google Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -32
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "jry3xqhUlMPYpaKi",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "15X6Ed51eJlVn8PY2mnyVOR5HusQIFLn_SYul9vC-TUg",
+          "mode": "list",
+          "cachedResultName": "vamos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15X6Ed51eJlVn8PY2mnyVOR5HusQIFLn_SYul9vC-TUg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15X6Ed51eJlVn8PY2mnyVOR5HusQIFLn_SYul9vC-TUg/edit#gid=0"
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Date ",
+              "fieldValue": "={{ $json.body.date }}"
+            },
+            {
+              "fieldId": "Time ",
+              "fieldValue": "={{ $json.body.time }}"
+            },
+            {
+              "fieldId": "Court ",
+              "fieldValue": "={{ $json.body.court }}"
+            },
+            {
+              "fieldId": "Court ID",
+              "fieldValue": "={{ $json.body.courtId }}"
+            },
+            {
+              "fieldId": "Name ",
+              "fieldValue": "={{ $json.body.name }}"
+            },
+            {
+              "fieldId": "Phone ",
+              "fieldValue": "={{ $json.body.phone }}"
+            },
+            {
+              "fieldId": "Email ",
+              "fieldValue": "={{ $json.body.email }}"
+            },
+            {
+              "fieldId": "Timestamp",
+              "fieldValue": "={{ $json.body.timestamp }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c31ce778-9334-40f6-a93c-3a68cf8d4564",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        0,
+        -224
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "J92OrsQLi3iFvPor",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "court-bookings",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2bdecbd3-2d26-4ff6-b982-9c9c56835eab",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        0
+      ],
+      "webhookId": "court-booking-webhook"
+    },
+    {
+      "parameters": {
+        "sendTo": "azizameur200612@gmail.com",
+        "subject": "=New Court Booking - {{ $json.body.court }}",
+        "message": "=Nom et prenom : {{ $json.body.name }} et numero telephone : {{ $json.body.phone }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        176
+      ],
+      "id": "0e12c275-2116-4b39-8651-29a5375f1430",
+      "name": "Send a message",
+      "webhookId": "094b06f0-8795-416c-b467-0eb0f9a7892c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GyVvafPLDlNU7m95",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.body.email }}",
+        "subject": "=Booking Confirmation - {{ $json.body.email }}",
+        "message": "=reservation : {{ $json.body.court }} & {{ $json.body.date }} & {{ $json.body.time }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        368
+      ],
+      "id": "facd1cbb-8bc5-4e5e-b80e-4b253d374dfa",
+      "name": "Send a message1",
+      "webhookId": "094b06f0-8795-416c-b467-0eb0f9a7892c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GyVvafPLDlNU7m95",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15X6Ed51eJlVn8PY2mnyVOR5HusQIFLn_SYul9vC-TUg",
+          "mode": "list",
+          "cachedResultName": "vamos"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "038e7548-5817-4ac6-91a7-016826098b4f",
+      "name": "Read Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        -704,
+        368
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "J92OrsQLi3iFvPor",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter bookings by date and format for website\nconst requestedDate = $('Webhook - load-court-bookings').first().json.body.date;\nconst allRows = $input.all();\nconst bookings = [];\n\nfor (const row of allRows) {\n  const data = row.json;\n  \n  // Skip header row or empty rows\n  if (!data['Date '] || data['Date '] === 'Date ' || data['Date '] === 'Date') continue;\n  \n  // Only include bookings for the requested date\n  if (data['Date '] === requestedDate) {\n    bookings.push({\n      date: data['Date '],\n      time: data['Time '],\n      court: data['Court '],\n      courtId: data['Court ID'],\n      name: data['Name '],\n      phone: data['Phone '] || '',\n      email: data['Email '] || ''\n    });\n  }\n}\n\nreturn [{ json: { bookings } }];"
+      },
+      "id": "8ed00ef0-69ee-4e23-9821-a8c94565e2cc",
+      "name": "Filter Bookings by Date",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -512,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "bb561a9d-a559-4d84-bc8a-9791a97150ea",
+      "name": "Respond with Bookings",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "load-court-bookings",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2f3d26b9-7458-4777-ab95-e3fc03be40b0",
+      "name": "Webhook - load-court-bookings",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        368
+      ],
+      "webhookId": "load-court-bookings"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Calendar": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Filter Bookings by Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Bookings by Date": {
+      "main": [
+        [
+          {
+            "node": "Respond with Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - load-court-bookings": {
+      "main": [
+        [
+          {
+            "node": "Read Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "d6fda1c6-e090-4de7-9d9f-28bc646654ea",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7065833bb9d13308e9a24fe7449032e0bcd7705dc67d09b38baf671df15ad75e"
+  },
+  "id": "ebw1HSqEIzP33VZMRCbNb",
+  "tags": []
+}
